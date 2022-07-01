@@ -1,0 +1,23 @@
+select OP.operatorName 'Associate',
+case when
+O.subtype = 'P' then 'Performance' else 'WD' end as 'Department',
+P.orderId 'Ref #',
+O.poNumber 'PO #',
+O.numCartons 'Initial Cartons in Order',
+O.value 'Initial Order Value',
+O.billingName 'Customer',
+O.accountNum 'Account',
+O.orderStatus 'Status',
+C.barcode 'LPN',
+P.itemId 'Item',
+P.qty 'Qty',
+case when P.uom ='ea' then 'Split Case' else 'Full Case' end as 'Pick Type',
+format (P.pickStamp, 'yyyy') 'Year Picked',
+format (P.pickStamp, 'MMM') 'Month Picked',
+format (P.pickStamp, 'dd') 'Day Picked',
+format (P.pickStamp, 'HH:mm') 'Time Picked'
+from NuminaData_BaseTables.dbo.HK_Numina_psPicks_raw P
+join NuminaData_BaseTables.dbo.HK_Numina_proOperators_raw OP on P.operatorId = OP.operatorID
+join NuminaData_BaseTables.dbo.HK_Numina_psOrders_raw O on P.orderId = O.orderId
+join NuminaData_BaseTables.dbo.HK_Numina_psCartons_raw C on P.cartonSeq = C.cartonSeq
+where P.pickable = 'true' and P.status = 'complete'
