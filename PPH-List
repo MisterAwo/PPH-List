@@ -1,9 +1,14 @@
+
+
+with picks as (
+
 select OP.operatorName 'Associate',
+OP.operatorID 'ID',
 case when
 O.subtype = 'P' then 'Performance' else 'WD' end as 'Department',
-P.orderId 'Ref #',
-O.poNumber 'PO #',
-O.numCartons 'Initial Cartons in Order',
+P.orderId 'Ref_#',
+O.poNumber 'PO_#',
+O.numCartons 'Cartons',
 O.value 'Initial Order Value',
 O.billingName 'Customer',
 O.accountNum 'Account',
@@ -11,13 +16,54 @@ O.orderStatus 'Status',
 C.barcode 'LPN',
 P.itemId 'Item',
 P.qty 'Qty',
-case when P.uom ='ea' then 'Split Case' else 'Full Case' end as 'Pick Type',
-format (P.pickStamp, 'yyyy') 'Year Picked',
-format (P.pickStamp, 'MMM') 'Month Picked',
-format (P.pickStamp, 'dd') 'Day Picked',
-format (P.pickStamp, 'HH:mm') 'Time Picked'
+case when P.uom ='ea' then 'Split Case' else 'Full Case' end as 'Pick_Type',
+format (P.pickStamp, 'yyyy-MM-dd') 'Day'
 from NuminaData_BaseTables.dbo.HK_Numina_psPicks_raw P
 join NuminaData_BaseTables.dbo.HK_Numina_proOperators_raw OP on P.operatorId = OP.operatorID
 join NuminaData_BaseTables.dbo.HK_Numina_psOrders_raw O on P.orderId = O.orderId
 join NuminaData_BaseTables.dbo.HK_Numina_psCartons_raw C on P.cartonSeq = C.cartonSeq
-where P.pickable = 'true' and P.status = 'complete'
+where P.pickable = 'true' and P.status = 'complete' AND p.uom = 'ea'
+
+),
+
+duration as (
+
+
+select
+    OP.operatorID 'ID',
+    T.startDate 'day',
+    datediff (hour, (min(OP.startTime)), (max(OP.endTime))) 'time_spent'
+from
+    NuminaData_BaseTables.dbo.[HK_Numina_ proOperatorLog_raw] OP
+    join NuminaData_BaseTables.dbo.HK_Numina_proTracker_raw T on OP.operatorID = T.operatorID
+where
+    format(OP.startTime, 'yyyy-MM-dd') = format(OP.endTime, 'yyyy-MM-dd')
+    and format(OP.startTime, 'yyyy-MM-dd') = T.startDate
+    and OP.task = 'cartpick'
+    and T.task = 'cartpick'
+group by
+    OP.operatorID,
+    T.startDate
+	)
+
+	select p.Account,
+	p.Associate,
+	p.Cartons,
+	p.Customer,
+	p.[Day],
+	p.Department,
+	p.ID,
+	p.[Initial Order Value],
+	p.Item,
+	p.LPN,
+	p.Pick_Type,
+	p.PO_#,
+	p.Qty,
+	p.Ref_#,
+	p.[Status],
+	d.ID,
+	d.[day],
+	d.time_spent
+	from picks p
+	join duration d on  p.ID = d.ID
+	where  p.[Day] = d.[day]
