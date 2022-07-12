@@ -1,30 +1,22 @@
+with 
 
-
-with picks as (
+picks as (
 
 select OP.operatorName 'Associate',
 OP.operatorID 'ID',
-case when
-O.subtype = 'P' then 'Performance' else 'WD' end as 'Department',
 P.orderId 'Ref_#',
 O.poNumber 'PO_#',
-O.numCartons 'Cartons',
-O.value 'Initial Order Value',
 O.billingName 'Customer',
-O.accountNum 'Account',
-O.orderStatus 'Status',
-C.barcode 'LPN',
 P.itemId 'Item',
 P.qty 'Qty',
-case when P.uom ='ea' then 'Split Case' else 'Full Case' end as 'Pick_Type',
+P.uom 'Pick_Type',
 format (P.pickStamp, 'yyyy-MM-dd') 'Day'
 from NuminaData_BaseTables.dbo.HK_Numina_psPicks_raw P
 join NuminaData_BaseTables.dbo.HK_Numina_proOperators_raw OP on P.operatorId = OP.operatorID
 join NuminaData_BaseTables.dbo.HK_Numina_psOrders_raw O on P.orderId = O.orderId
-join NuminaData_BaseTables.dbo.HK_Numina_psCartons_raw C on P.cartonSeq = C.cartonSeq
 where P.pickable = 'true' and P.status = 'complete' AND p.uom = 'ea'
 
-),
+			),
 
 duration as (
 
@@ -32,7 +24,7 @@ duration as (
 select
     OP.operatorID 'ID',
     T.startDate 'day',
-    datediff (hour, (min(OP.startTime)), (max(OP.endTime))) 'time_spent'
+	datediff (hour, (min(OP.startTime)), (max(OP.endTime))) 'time_spent'
 from
     NuminaData_BaseTables.dbo.[HK_Numina_ proOperatorLog_raw] OP
     join NuminaData_BaseTables.dbo.HK_Numina_proTracker_raw T on OP.operatorID = T.operatorID
@@ -44,26 +36,37 @@ where
 group by
     OP.operatorID,
     T.startDate
-	)
+				),
 
-	select p.Account,
+qty_picked as	(
+
+    select
+        sum (value) 'qty picked',
+        operatorID 'ID',
+        startDate 'day'
+    from
+        NuminaData_BaseTables.dbo.HK_Numina_proTracker_raw
+    where
+        task = 'cartpick'
+    group by
+        operatorID,
+        startDate
+				)
+
+	select 
 	p.Associate,
-	p.Cartons,
 	p.Customer,
 	p.[Day],
-	p.Department,
-	p.ID,
-	p.[Initial Order Value],
 	p.Item,
-	p.LPN,
 	p.Pick_Type,
 	p.PO_#,
 	p.Qty,
 	p.Ref_#,
-	p.[Status],
-	d.ID,
-	d.[day],
-	d.time_spent
+	d.time_spent,
+	q.[qty picked]
+	
 	from picks p
 	join duration d on  p.ID = d.ID
-	where  p.[Day] = d.[day]
+	join qty_picked q on Q.ID = d.ID
+	where  p.[Day] = d.[day] and d.[day] = q.[day]
+	
