@@ -65,8 +65,10 @@ qty_picked as	(
 	d.time_spent,
 	q.[qty picked]
 	
-	from picks p
-	join duration d on  p.ID = d.ID
-	join qty_picked q on Q.ID = d.ID
-	where  p.[Day] = d.[day] and d.[day] = q.[day]
+	from picks p, duration d, qty_picked q
+	where 
+	p.ID = d.ID 
+	and Q.ID = d.ID
+	and  p.[Day] = d.[day]
+	and d.[day] = q.[day]
 	
