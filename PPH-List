@@ -10,7 +10,8 @@ O.billingName 'Customer',
 P.itemId 'Item',
 P.qty 'Qty',
 P.uom 'Pick_Type',
-format (P.pickStamp, 'yyyy-MM-dd') 'Day'
+format (P.pickStamp, 'yyyy-MM-dd') 'Day',
+format (P.pickStamp, 'HH:mm') 'Time'
 from NuminaData_BaseTables.dbo.HK_Numina_psPicks_raw P
 join NuminaData_BaseTables.dbo.HK_Numina_proOperators_raw OP on P.operatorId = OP.operatorID
 join NuminaData_BaseTables.dbo.HK_Numina_psOrders_raw O on P.orderId = O.orderId
@@ -54,9 +55,11 @@ qty_picked as	(
 				)
 
 	select 
+	p.ID,
 	p.Associate,
 	p.Customer,
 	p.[Day],
+	p.Time,
 	p.Item,
 	p.Pick_Type,
 	p.PO_#,
@@ -66,7 +69,6 @@ qty_picked as	(
 	q.[qty picked]
 	
 	from picks p
-	join duration d on  p.ID = d.ID
-	join qty_picked q on Q.ID = d.ID
+	left join duration d on  p.ID = d.ID
+	left join qty_picked q on Q.ID = d.ID
 	where  p.[Day] = d.[day] and d.[day] = q.[day]
-	
