@@ -1,4 +1,3 @@
-
 with 
 
 picks as (
@@ -33,8 +32,8 @@ from
 where
     format(OP.startTime, 'yyyy-MM-dd') = format(OP.endTime, 'yyyy-MM-dd')
     and format(OP.startTime, 'yyyy-MM-dd') = T.startDate
-    and OP.task = 'casepickw'
-    and T.task = 'casepickw'
+    and OP.task = 'casepickp'
+    and T.task = 'casepickp'
 group by
     OP.operatorID,
     T.startDate
@@ -49,7 +48,7 @@ qty_picked as	(
     from
         NuminaData_BaseTables.dbo.HK_Numina_proTracker_raw
     where
-        task = 'casepickw'
+        task = 'casepickp'
     group by
         operatorID,
         startDate
