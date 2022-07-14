@@ -1,3 +1,4 @@
+
 with 
 
 picks as (
@@ -15,7 +16,7 @@ format (P.pickStamp, 'HH:mm') 'Time'
 from NuminaData_BaseTables.dbo.HK_Numina_psPicks_raw P
 join NuminaData_BaseTables.dbo.HK_Numina_proOperators_raw OP on P.operatorId = OP.operatorID
 join NuminaData_BaseTables.dbo.HK_Numina_psOrders_raw O on P.orderId = O.orderId
-where P.pickable = 'true' and P.status = 'complete' AND p.uom = 'ea'
+where P.pickable = 'true' and P.status = 'complete' AND p.uom = 'cs'
 
 			),
 
@@ -32,8 +33,8 @@ from
 where
     format(OP.startTime, 'yyyy-MM-dd') = format(OP.endTime, 'yyyy-MM-dd')
     and format(OP.startTime, 'yyyy-MM-dd') = T.startDate
-    and OP.task = 'cartpick'
-    and T.task = 'cartpick'
+    and OP.task = 'casepickw'
+    and T.task = 'casepickw'
 group by
     OP.operatorID,
     T.startDate
@@ -48,7 +49,7 @@ qty_picked as	(
     from
         NuminaData_BaseTables.dbo.HK_Numina_proTracker_raw
     where
-        task = 'cartpick'
+        task = 'casepickw'
     group by
         operatorID,
         startDate
