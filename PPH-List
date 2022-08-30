@@ -17,7 +17,7 @@ with picks as (
     where
         P.pickable = 'true'
         and P.status = 'complete'
-        AND p.uom = 'ea' -- OPERATION CONTROL
+        AND p.uom = 'cs' -- OPERATION CONTROL
         -- and OP.operatorID = '2121'
 ),
 duration as (
@@ -31,8 +31,8 @@ duration as (
     where
         format(OP.startTime, 'yyyy-MM-dd') = format(OP.endTime, 'yyyy-MM-dd')
         and format(OP.startTime, 'yyyy-MM-dd') = T.startDate
-        and OP.task = 'cartpick' -- OPERATION CONTROL
-        and T.task = 'cartpick' -- OPERATION CONTROL 
+        and OP.task = 'casepickp' -- OPERATION CONTROL
+        and T.task = 'casepickp' -- OPERATION CONTROL 
         -- and OP.operatorID = '2121'
         -- and T.startDate like '%2022-08-23%'
     group by
@@ -60,7 +60,7 @@ qty_picked as (
     from
         NuminaData_BaseTables.dbo.HK_Numina_proTracker_raw
     where
-        task = 'cartpick' -- OPERATION CONTROL
+        task = 'casepickp' -- OPERATION CONTROL
         -- and operatorID = '2121'
     group by
         operatorID,
