@@ -1,23 +1,91 @@
-select OP.operatorName 'Associate',
-case when
-O.subtype = 'P' then 'Performance' else 'WD' end as 'Department',
-P.orderId 'Ref #',
-O.poNumber 'PO #',
-O.numCartons 'Initial Cartons in Order',
-O.value 'Initial Order Value',
-O.billingName 'Customer',
-O.accountNum 'Account',
-O.orderStatus 'Status',
-C.barcode 'LPN',
-P.itemId 'Item',
-P.qty 'Qty',
-case when P.uom ='ea' then 'Split Case' else 'Full Case' end as 'Pick Type',
-format (P.pickStamp, 'yyyy') 'Year Picked',
-format (P.pickStamp, 'MMM') 'Month Picked',
-format (P.pickStamp, 'dd') 'Day Picked',
-format (P.pickStamp, 'HH:mm') 'Time Picked'
-from NuminaData_BaseTables.dbo.HK_Numina_psPicks_raw P
-join NuminaData_BaseTables.dbo.HK_Numina_proOperators_raw OP on P.operatorId = OP.operatorID
-join NuminaData_BaseTables.dbo.HK_Numina_psOrders_raw O on P.orderId = O.orderId
-join NuminaData_BaseTables.dbo.HK_Numina_psCartons_raw C on P.cartonSeq = C.cartonSeq
-where P.pickable = 'true' and P.status = 'complete'
+with picks as (
+    select
+        OP.operatorName 'Associate',
+        OP.operatorID 'ID',
+        P.orderId 'Ref_#',
+        O.poNumber 'PO_#',
+        O.billingName 'Customer',
+        P.itemId 'Item',
+        P.qty 'Qty',
+        P.uom 'Pick_Type',
+        format (P.pickStamp, 'yyyy-MM-dd') 'Day',
+        format (P.pickStamp, 'HH:mm') 'Time'
+    from
+        NuminaData_BaseTables.dbo.HK_Numina_psPicks_raw P
+        join NuminaData_BaseTables.dbo.HK_Numina_proOperators_raw OP on P.operatorId = OP.operatorID
+        join NuminaData_BaseTables.dbo.HK_Numina_psOrders_raw O on P.orderId = O.orderId
+    where
+        P.pickable = 'true'
+        and P.status = 'complete'
+        AND p.uom = 'ea' -- OPERATION CONTROL
+        -- and OP.operatorID = '2121'
+),
+duration as (
+    select
+        distinct OP.operatorID 'ID',
+        T.startDate 'day',
+        datediff (MINUTE, OP.startTime, OP.endTime) 'time_spent'
+    from
+        NuminaData_BaseTables.dbo.[HK_Numina_ proOperatorLog_raw] OP
+        join NuminaData_BaseTables.dbo.HK_Numina_proTracker_raw T on OP.operatorID = T.operatorID
+    where
+        format(OP.startTime, 'yyyy-MM-dd') = format(OP.endTime, 'yyyy-MM-dd')
+        and format(OP.startTime, 'yyyy-MM-dd') = T.startDate
+        and OP.task = 'cartpick' -- OPERATION CONTROL
+        and T.task = 'cartpick' -- OPERATION CONTROL 
+        -- and OP.operatorID = '2121'
+        -- and T.startDate like '%2022-08-23%'
+    group by
+        OP.operatorID,
+        T.startDate,
+        OP.startTime,
+        OP.endTime
+),
+[duration report] as (
+    select
+        ID 'ID',
+        day 'Day',
+        (sum (time_spent) / 60) 'Time Spent (Hr)'
+    from
+        duration
+    group by
+        ID,
+        [day]
+),
+qty_picked as (
+    select
+        sum (value) 'Qty Picked',
+        operatorID 'ID',
+        startDate 'day'
+    from
+        NuminaData_BaseTables.dbo.HK_Numina_proTracker_raw
+    where
+        task = 'cartpick' -- OPERATION CONTROL
+        -- and operatorID = '2121'
+    group by
+        operatorID,
+        startDate
+)
+select
+    p.ID,
+    p.Associate,
+    p.Customer,
+    p.[Day],
+    p.[Time],
+    p.Item,
+    p.Pick_Type,
+    p.PO_#,
+    p.Qty,
+    p.Ref_#,
+    d.[Time Spent (Hr)],
+    q.[Qty Picked],
+    ((q.[qty picked] / NULLIF (d.[Time Spent (Hr)],0)) / 60) * 100 'Productivity'
+from
+    picks p
+    left join [duration report] d on p.ID = d.ID
+    left join qty_picked q on Q.ID = d.ID
+where
+    p.[Day] = d.[day]
+    and d.[day] = q.[day] 
+    -- and p.ID = '2121'
+    -- and p.[Day] like '%2022-08-23%'
